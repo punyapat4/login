@@ -37,6 +37,7 @@
 </head>
 <body class="h-full w-full">
     <div class="w-full h-full overflow-auto">
+        
         <div id="loginPage" class="w-full min-h-screen flex items-center justify-center p-4 fade-in">
             <div class="w-full max-w-md">
                 <div class="text-center mb-8">
@@ -47,32 +48,41 @@
                     <p class="text-purple-100">Document Management System</p>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-2xl p-8">
-                    <div id="loadingOverlay" class="hidden absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-lg z-10">
-                        <p class="text-purple-600 font-bold">กำลังตรวจสอบข้อมูล...</p>
+                <div class="bg-white rounded-lg shadow-2xl p-8 relative">
+                    
+                    <div id="loadingOverlay" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center rounded-lg z-10">
+                        <svg class="animate-spin h-8 w-8 text-purple-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-purple-600 font-bold">กำลังประมวลผล...</p>
                     </div>
 
-                    <div class="mb-6">
+                    <div class="mb-4">
                         <label class="block text-gray-700 font-semibold mb-2">ชื่อผู้ใช้</label>
-                        <input id="username" type="text" placeholder="กรอกชื่อผู้ใช้" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition">
+                        <input id="username" type="text" placeholder="กรอกชื่อผู้ใช้ หรือ Email" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition">
                     </div>
-                    <div class="mb-6">
+                    <div class="mb-4">
                         <label class="block text-gray-700 font-semibold mb-2">รหัสผ่าน</label>
                         <input id="password" type="password" placeholder="กรอกรหัสผ่าน" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition">
                     </div>
                     <div class="mb-6">
-                        <label class="block text-gray-700 font-semibold mb-2">บทบาท</label>
+                        <label class="block text-gray-700 font-semibold mb-2">บทบาท (สำหรับการใช้งาน / สร้างผู้ใช้ใหม่)</label>
                         <select id="role" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
                             <option value="student">นักเรียน</option>
                             <option value="teacher">ครู</option>
                             <option value="admin">ผู้ดูแลระบบ</option>
                         </select>
                     </div>
-                    <button onclick="handleLogin()" class="btn-primary w-full text-white font-bold py-3 rounded-lg mb-4">เข้าสู่ระบบ</button>
+                    
+                    <div class="flex gap-2 mb-4">
+                        <button onclick="handleLogin()" class="btn-primary flex-1 text-white font-bold py-3 rounded-lg">เข้าสู่ระบบ</button>
+                        <button onclick="handleRegister()" class="bg-gray-100 text-gray-700 hover:bg-gray-200 font-bold py-3 px-4 rounded-lg transition border border-gray-300">สร้างผู้ใช้งาน</button>
+                    </div>
 
                     <div class="relative flex py-2 items-center">
                         <div class="flex-grow border-t border-gray-300"></div>
-                        <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">หรือ</span>
+                        <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">หรือเข้าใช้งานด่วน</span>
                         <div class="flex-grow border-t border-gray-300"></div>
                     </div>
 
@@ -126,10 +136,10 @@
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">เอกสารในระบบ</h2>
-                        <button onclick="alert('ฟังก์ชันอัปโหลดต้องเขียนโค้ดอัปโหลดไฟล์ไป Google Drive เพิ่มเติม')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">✚ อัปโหลดเอกสาร</button>
+                        <button onclick="alert('ฟังก์ชันอัปโหลดเอกสาร จะมาในเฟสถัดไป')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">✚ อัปโหลดเอกสาร</button>
                     </div>
                     <div id="documentsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <p class="text-gray-500">กำลังเชื่อมต่อฐานข้อมูลจำลอง...</p>
+                        <p class="text-gray-500">ยังไม่มีเอกสารในระบบ...</p>
                     </div>
                 </div>
             </main>
@@ -137,13 +147,13 @@
     </div>
 
     <script>
-        // ⚠️ นำ URL Web App ที่ได้จาก Google Apps Script มาวางตรงนี้
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDw73uMOuCFNzIk5cK6AhOTbaSLny_04ERRA1ivMWUJWUXeJUVdkWmFIw33cVHTDV8Mg/exec';
+        // 🛑 นำ URL ของ Web App อันใหม่ที่คุณเพิ่งกด Deploy มาใส่ตรงนี้
+        const APPS_SCRIPT_URL = 'ใส่_URL_WEB_APP_ที่นี่';
         
         let currentUser = null;
 
-        // ฟังก์ชันเข้าสู่ระบบด้วยรหัสผ่านปกติ
-        async function handleLogin() {
+        // ฟังก์ชัน: เข้าสู่ระบบปกติ
+        function handleLogin() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const role = document.getElementById('role').value;
@@ -152,25 +162,36 @@
                 alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
                 return;
             }
-            
             callBackend({ action: 'login', username: username, password: password, role: role });
         }
 
-        // ฟังก์ชันรับ Callback จาก Google Sign-In
+        // ฟังก์ชัน: สร้างบัญชีใหม่
+        function handleRegister() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            if (!username || !password) {
+                alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่านที่จะสร้าง');
+                return;
+            }
+            callBackend({ action: 'register', username: username, password: password, role: role });
+        }
+
+        // ฟังก์ชัน: รับค่าจากการ Login ด้วย Google
         function handleCredentialResponse(response) {
             const responsePayload = decodeJwtResponse(response.credential);
             const userEmail = responsePayload.email;
+            const userName = responsePayload.name; 
             
-            // ส่ง Email ไปเช็คกับ Google Sheet
-            callBackend({ action: 'googleLogin', email: userEmail });
+            callBackend({ action: 'googleLogin', email: userEmail, name: userName });
         }
 
-        // ฟังก์ชันยิง API ไปยัง Google Apps Script
+        // ฟังก์ชันหลัก: เชื่อมต่อกับฐานข้อมูล
         async function callBackend(data) {
             document.getElementById('loadingOverlay').classList.remove('hidden');
             
             try {
-                // ใช้ text/plain เพื่อเลี่ยงปัญหา CORS Preflight ตอนยิงไป Google Script
                 const res = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -180,19 +201,25 @@
                 const result = await res.json();
                 
                 if(result.status === 'success') {
-                    currentUser = result.user;
-                    loadDashboard();
+                    if (data.action === 'register') {
+                        alert(result.message); // แจ้งเตือนเมื่อสมัครสำเร็จ
+                        document.getElementById('password').value = ''; 
+                    } else {
+                        currentUser = result.user; // เก็บข้อมูลผู้ใช้
+                        loadDashboard(); // พาไปหน้า Dashboard
+                    }
                 } else {
-                    alert(result.message);
+                    alert(result.message); // แจ้งเตือนเมื่อเกิดข้อผิดพลาด
                 }
             } catch (error) {
                 console.error(error);
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับฐานข้อมูล');
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับฐานข้อมูล กรุณาตรวจสอบลิงก์ Web App (CORS Error)');
             } finally {
                 document.getElementById('loadingOverlay').classList.add('hidden');
             }
         }
 
+        // ฟังก์ชัน: ถอดรหัส Token จาก Google
         function decodeJwtResponse(token) {
             let base64Url = token.split('.')[1];
             let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -202,19 +229,23 @@
             return JSON.parse(jsonPayload);
         }
 
+        // ฟังก์ชัน: โหลดหน้าแสดงผลหลัก
         function loadDashboard() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('dashboardPage').classList.remove('hidden');
             
             const roleNames = { student: 'นักเรียน', teacher: 'ครู', admin: 'ผู้ดูแลระบบ' };
-            document.getElementById('displayName').textContent = currentUser.displayName;
-            document.getElementById('roleDisplay').textContent = roleNames[currentUser.role];
-            document.getElementById('avatarInitial').textContent = currentUser.displayName.charAt(0).toUpperCase();
+            const displayName = currentUser.displayName || currentUser.username;
+            
+            document.getElementById('displayName').textContent = displayName;
+            document.getElementById('roleDisplay').textContent = roleNames[currentUser.role] || 'ผู้ใช้งาน';
+            document.getElementById('avatarInitial').textContent = displayName.charAt(0).toUpperCase();
             
             loadQuickActions();
-            loadMockDocuments(); // ใช้ Mock data ไปก่อนระหว่างพัฒนาฟังก์ชันอ่านไฟล์จริง
+            loadMockDocuments();
         }
 
+        // ฟังก์ชัน: สร้างเมนูด่วนตามบทบาท
         function loadQuickActions() {
             const actions = {
                 student: [
@@ -231,8 +262,9 @@
                 ]
             };
             
-            const actionsHtml = actions[currentUser.role].map(action => `
-                <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-l-4 border-purple-500 shadow-sm">
+            const currentActions = actions[currentUser.role] || actions['student'];
+            const actionsHtml = currentActions.map(action => `
+                <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-l-4 border-purple-500 shadow-sm transition hover:shadow-md cursor-pointer">
                     <div class="text-3xl mb-2">${action.icon}</div>
                     <p class="font-bold text-gray-800">${action.title}</p>
                     <p class="text-sm text-gray-600">${action.desc}</p>
@@ -241,29 +273,28 @@
             document.getElementById('quickActions').innerHTML = actionsHtml;
         }
 
+        // ฟังก์ชัน: สร้างเอกสารตัวอย่าง
         function loadMockDocuments() {
-            // ตัวอย่างแสดงเอกสาร (คุณสามารถต่อยอดดึงข้อมูลจาก Sheet 'Documents' ได้ภายหลัง)
             document.getElementById('documentsList').innerHTML = `
                 <div class="document-card bg-white border-2 border-gray-200 rounded-lg p-4">
                     <div class="flex items-start gap-3 mb-3">
                         <div class="text-2xl">📄</div>
                         <div class="flex-1">
                             <p class="font-bold text-gray-800">คู่มือการใช้งานระบบ</p>
-                            <p class="text-sm text-gray-500">สำหรับ ${currentUser.role}</p>
+                            <p class="text-sm text-gray-500">เข้าถึงโดย: ${currentUser.role}</p>
                         </div>
                     </div>
                 </div>
             `;
         }
 
+        // ฟังก์ชัน: ออกจากระบบ
         function handleLogout() {
             currentUser = null;
             document.getElementById('loginPage').classList.remove('hidden');
             document.getElementById('dashboardPage').classList.add('hidden');
-            document.getElementById('username').value = '';
             document.getElementById('password').value = '';
         }
     </script>
 </body>
 </html>
-
