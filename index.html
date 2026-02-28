@@ -1,301 +1,176 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดเก็บเอกสาร</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>ระบบจัดเก็บเอกสารราชการ</title>
+    
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    
     <style>
-        * { font-family: 'Prompt', sans-serif; }
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-sizing: border-box; }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .document-card {
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-        .document-card:hover {
-            transform: translateY(-4px);
-            border-color: #667eea;
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
+        /* (ใส่ CSS เดิมของคุณทั้งหมดตรงนี้ ผมคัดลอกมาเฉพาะส่วนจำเป็นเพื่อไม่ให้โค้ดยาวเกินไป) */
+        :root { --primary-color: #001f3f; --accent-color: #3b82f6; --bg-color: #f1f5f9; --text-main: #1e293b; --white: #ffffff;}
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Kanit', sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); }
+        .hidden { display: none !important; }
+        
+        /* Login Screen Styles */
+        #login-screen { height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #001f3f, #003366, #0056b3); position: relative; }
+        .login-card { background: rgba(255, 255, 255, 0.95); padding: 2.5rem; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); text-align: center; z-index: 10; width: 100%; max-width: 400px; }
+        .login-card h2 { color: var(--primary-color); margin-bottom: 0.5rem; }
+        .login-card p { color: #64748b; margin-bottom: 2rem; }
+        
+        /* Layout */
+        .wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: 280px; background: var(--primary-color); color: white; padding: 1rem; }
+        .main-content { flex-grow: 1; padding: 2rem; }
+        
+        /* Loader */
+        #global-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: none; justify-content: center; align-items: center; }
+        #global-loader.active { display: flex; }
     </style>
 </head>
-<body class="h-full w-full">
-    <div class="w-full h-full overflow-auto">
-        
-        <div id="loginPage" class="w-full min-h-screen flex items-center justify-center p-4 fade-in">
-            <div class="w-full max-w-md">
-                <div class="text-center mb-8">
-                    <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <svg class="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-10.747 0-6.002-4.5-10.747-10-10.747z"></path></svg>
-                    </div>
-                    <h1 class="text-3xl font-bold text-white mb-2">ระบบจัดเก็บเอกสาร</h1>
-                    <p class="text-purple-100">Document Management System</p>
-                </div>
 
-                <div class="bg-white rounded-lg shadow-2xl p-8 relative">
-                    
-                    <div id="loadingOverlay" class="hidden absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center rounded-lg z-10">
-                        <svg class="animate-spin h-8 w-8 text-purple-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <p class="text-purple-600 font-bold">กำลังประมวลผล...</p>
-                    </div>
+<body>
+    <div id="global-loader">
+        <div style="font-size: 1.5rem; color: var(--primary-color);"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</div>
+    </div>
 
-                    <div class="mb-4">
-                        <label class="block text-gray-700 font-semibold mb-2">ชื่อผู้ใช้</label>
-                        <input id="username" type="text" placeholder="กรอกชื่อผู้ใช้ หรือ Email" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 font-semibold mb-2">รหัสผ่าน</label>
-                        <input id="password" type="password" placeholder="กรอกรหัสผ่าน" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition">
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-gray-700 font-semibold mb-2">บทบาท (สำหรับการใช้งาน / สร้างผู้ใช้ใหม่)</label>
-                        <select id="role" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500">
-                            <option value="student">นักเรียน</option>
-                            <option value="teacher">ครู</option>
-                            <option value="admin">ผู้ดูแลระบบ</option>
-                        </select>
-                    </div>
-                    
-                    <div class="flex gap-2 mb-4">
-                        <button onclick="handleLogin()" class="btn-primary flex-1 text-white font-bold py-3 rounded-lg">เข้าสู่ระบบ</button>
-                        <button onclick="handleRegister()" class="bg-gray-100 text-gray-700 hover:bg-gray-200 font-bold py-3 px-4 rounded-lg transition border border-gray-300">สร้างผู้ใช้งาน</button>
-                    </div>
-
-                    <div class="relative flex py-2 items-center">
-                        <div class="flex-grow border-t border-gray-300"></div>
-                        <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">หรือเข้าใช้งานด่วน</span>
-                        <div class="flex-grow border-t border-gray-300"></div>
-                    </div>
-
-                    <div class="mt-4 flex justify-center">
-                        <div id="g_id_onload"
-                             data-client_id="422299273146-29j84vfcitgs0tdjkrio8jk2gpqi301t.apps.googleusercontent.com"
-                             data-context="signin"
-                             data-ux_mode="popup"
-                             data-callback="handleCredentialResponse"
-                             data-auto_prompt="false">
-                        </div>
-                        <div class="g_id_signin"
-                             data-type="standard"
-                             data-shape="rectangular"
-                             data-theme="outline"
-                             data-text="signin_with"
-                             data-size="large"
-                             data-logo_alignment="center"
-                             data-width="300">
-                        </div>
-                    </div>
-                    <p class="text-center text-sm text-gray-500 mt-4">ระบบเชื่อมต่อกับ Google Sheets โดยตรง</p>
-                </div>
+    <section id="login-screen">
+        <div class="login-card">
+            <i class="fa-solid fa-folder-open fa-3x mb-4" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
+            <h2>ระบบจัดเก็บเอกสารราชการ</h2>
+            <p>กรุณาเข้าสู่ระบบด้วยบัญชี Google</p>
+            
+            <div id="g_id_onload"
+                 data-client_id="422299273146-29j84vfcitgs0tdjkrio8jk2gpqi301t.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
             </div>
+            <div class="g_id_signin" data-type="standard" data-theme="outline" data-size="large" style="display: flex; justify-content: center;"></div>
         </div>
+    </section>
 
-        <div id="dashboardPage" class="w-full hidden min-h-screen bg-gray-50">
-            <header class="bg-white shadow">
-                <div class="w-full max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                            <span id="avatarInitial">U</span>
-                        </div>
-                        <div>
-                            <p class="font-bold text-gray-800" id="displayName">ผู้ใช้งาน</p>
-                            <p id="roleDisplay" class="text-sm text-gray-500">บทบาท</p>
-                        </div>
-                    </div>
-                    <button onclick="handleLogout()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">ออกจากระบบ</button>
+    <div class="wrapper hidden" id="main-app">
+        <nav class="sidebar">
+            <h2>DOCS SYSTEM</h2>
+            <hr style="margin: 1rem 0; border-color: rgba(255,255,255,0.1);">
+            <div style="cursor: pointer; padding: 0.5rem 0;" onclick="app.logout()"><i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ</div>
+        </nav>
+        <main class="main-content">
+            <h2>แผงควบคุม (Dashboard)</h2>
+            <p>ยินดีต้อนรับ, <span id="display-name" style="font-weight: bold; color: var(--accent-color);">-</span></p>
+            
+            <div style="margin-top: 2rem; padding: 1rem; background: white; border-radius: 8px;">
+                <p>จำนวนเอกสารในระบบ: <span id="doc-count">0</span> รายการ</p>
                 </div>
-            </header>
-
-            <main class="w-full max-w-7xl mx-auto px-4 py-8">
-                <div class="mb-8">
-                    <h1 class="text-4xl font-bold text-gray-800 mb-2">ยินดีต้อนรับ</h1>
-                    <p class="text-gray-600">จัดการเอกสารของคุณอย่างมีประสิทธิภาพ</p>
-                </div>
-
-                <div id="quickActions" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"></div>
-
-                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">เอกสารในระบบ</h2>
-                        <button onclick="alert('ฟังก์ชันอัปโหลดเอกสาร จะมาในเฟสถัดไป')" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">✚ อัปโหลดเอกสาร</button>
-                    </div>
-                    <div id="documentsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <p class="text-gray-500">ยังไม่มีเอกสารในระบบ...</p>
-                    </div>
-                </div>
-            </main>
-        </div>
+        </main>
     </div>
 
     <script>
-        // 🛑 นำ URL ของ Web App อันใหม่ที่คุณเพิ่งกด Deploy มาใส่ตรงนี้
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbhGM9rjW2kNSvi1hOhdmHKLY2zjmZoDziRZUJ4lTssjUipphrw08qKUVHSJirLYYgYA/exec';
-        
-        let currentUser = null;
+        // ==========================================
+        // ส่วนสำคัญ: แก้ไข API_URL ให้เป็น Web App URL ของคุณ
+        // ==========================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzW3qjG2AiIYDxWrQtuIhQCF1jGQP2vXWYYOeicOUiAOt0GuxW9FnNeOtBSmNJlWEFd/exec'; 
 
-        // ฟังก์ชัน: เข้าสู่ระบบปกติ
-        function handleLogin() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const role = document.getElementById('role').value;
-            
-            if (!username || !password) {
-                alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
-                return;
-            }
-            callBackend({ action: 'login', username: username, password: password, role: role });
-        }
-
-        // ฟังก์ชัน: สร้างบัญชีใหม่
-        function handleRegister() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const role = document.getElementById('role').value;
-            
-            if (!username || !password) {
-                alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่านที่จะสร้าง');
-                return;
-            }
-            callBackend({ action: 'register', username: username, password: password, role: role });
-        }
-
-        // ฟังก์ชัน: รับค่าจากการ Login ด้วย Google
+        // 1. ระบบ Login Google
         function handleCredentialResponse(response) {
-            const responsePayload = decodeJwtResponse(response.credential);
-            const userEmail = responsePayload.email;
-            const userName = responsePayload.name; 
+            // ถอดรหัส Token ของ Google
+            const payload = JSON.parse(atob(response.credential.split('.')[1]));
             
-            callBackend({ action: 'googleLogin', email: userEmail, name: userName });
+            // สลับหน้าจอ
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            // แสดงชื่อผู้ใช้
+            document.getElementById('display-name').innerText = payload.name;
+            
+            // เริ่มโหลดข้อมูล
+            app.init();
         }
 
-        // ฟังก์ชันหลัก: เชื่อมต่อกับฐานข้อมูล
-        async function callBackend(data) {
-            document.getElementById('loadingOverlay').classList.remove('hidden');
-            
-            try {
-                const res = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await res.json();
-                
-                if(result.status === 'success') {
-                    if (data.action === 'register') {
-                        alert(result.message); // แจ้งเตือนเมื่อสมัครสำเร็จ
-                        document.getElementById('password').value = ''; 
-                    } else {
-                        currentUser = result.user; // เก็บข้อมูลผู้ใช้
-                        loadDashboard(); // พาไปหน้า Dashboard
-                    }
-                } else {
-                    alert(result.message); // แจ้งเตือนเมื่อเกิดข้อผิดพลาด
+        // 2. ฟังก์ชันหลักสำหรับสื่อสารกับ Backend API (แทน google.script.run)
+        const api = {
+            // ดึงข้อมูลแบบ GET
+            get: async function(action) {
+                try {
+                    const response = await fetch(`${API_URL}?action=${action}`, { redirect: "follow" });
+                    return await response.json();
+                } catch (error) {
+                    console.error("API GET Error:", error);
+                    return { success: false, error: error.message };
                 }
-            } catch (error) {
-                console.error(error);
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับฐานข้อมูล กรุณาตรวจสอบลิงก์ Web App (CORS Error)');
-            } finally {
-                document.getElementById('loadingOverlay').classList.add('hidden');
+            },
+            
+            // ส่งข้อมูลแบบ POST
+            post: async function(action, dataObj) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        redirect: "follow",
+                        body: JSON.stringify({ action: action, data: dataObj })
+                    });
+                    return await response.json();
+                } catch (error) {
+                    console.error("API POST Error:", error);
+                    return { success: false, message: error.message };
+                }
             }
-        }
+        };
 
-        // ฟังก์ชัน: ถอดรหัส Token จาก Google
-        function decodeJwtResponse(token) {
-            let base64Url = token.split('.')[1];
-            let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jsonPayload);
-        }
-
-        // ฟังก์ชัน: โหลดหน้าแสดงผลหลัก
-        function loadDashboard() {
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('dashboardPage').classList.remove('hidden');
+        // 3. โครงสร้างแอพพลิเคชัน
+        const app = {
+            data: {},
             
-            const roleNames = { student: 'นักเรียน', teacher: 'ครู', admin: 'ผู้ดูแลระบบ' };
-            const displayName = currentUser.displayName || currentUser.username;
-            
-            document.getElementById('displayName').textContent = displayName;
-            document.getElementById('roleDisplay').textContent = roleNames[currentUser.role] || 'ผู้ใช้งาน';
-            document.getElementById('avatarInitial').textContent = displayName.charAt(0).toUpperCase();
-            
-            loadQuickActions();
-            loadMockDocuments();
-        }
+            init: async function() {
+                document.getElementById('global-loader').classList.add('active');
+                
+                // ตัวอย่างการใช้ api.get แทน google.script.run.getInitialData()
+                const res = await api.get('getInitialData');
+                
+                if (res.success) {
+                    app.data = res.data;
+                    console.log("โหลดข้อมูลสำเร็จ:", app.data);
+                    document.getElementById('doc-count').innerText = app.data.docs.length;
+                    
+                    // ปลุกฟังก์ชัน Render ตารางของคุณตรงนี้
+                    // renderTable(app.data.docs); 
+                } else {
+                    Swal.fire('เกิดข้อผิดพลาด', res.error || 'ไม่สามารถโหลดข้อมูลได้', 'error');
+                }
+                
+                document.getElementById('global-loader').classList.remove('active');
+            },
 
-        // ฟังก์ชัน: สร้างเมนูด่วนตามบทบาท
-        function loadQuickActions() {
-            const actions = {
-                student: [
-                    { icon: '📁', title: 'เอกสารของฉัน', desc: 'ไฟล์เรียน' },
-                    { icon: '⏰', title: 'ล่าสุด', desc: 'อัปเดตวันนี้' }
-                ],
-                teacher: [
-                    { icon: '📝', title: 'สร้างงาน', desc: 'ส่งให้นักเรียน' },
-                    { icon: '📚', title: 'คลังเอกสาร', desc: 'จัดการเนื้อหา' }
-                ],
-                admin: [
-                    { icon: '👥', title: 'จัดการผู้ใช้', desc: 'สิทธิ์การเข้าถึง' },
-                    { icon: '⚙️', title: 'ระบบ', desc: 'ฐานข้อมูล Sheets' }
-                ]
-            };
-            
-            const currentActions = actions[currentUser.role] || actions['student'];
-            const actionsHtml = currentActions.map(action => `
-                <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-l-4 border-purple-500 shadow-sm transition hover:shadow-md cursor-pointer">
-                    <div class="text-3xl mb-2">${action.icon}</div>
-                    <p class="font-bold text-gray-800">${action.title}</p>
-                    <p class="text-sm text-gray-600">${action.desc}</p>
-                </div>
-            `).join('');
-            document.getElementById('quickActions').innerHTML = actionsHtml;
-        }
+            // ตัวอย่างการเซฟข้อมูล
+            saveDocument: async function(docData) {
+                document.getElementById('global-loader').classList.add('active');
+                
+                // ใช้ api.post แทน google.script.run.saveDocument()
+                const res = await api.post('saveDocument', docData);
+                
+                if(res.success) {
+                    Swal.fire('สำเร็จ', 'บันทึกข้อมูลแล้ว', 'success');
+                    app.init(); // โหลดข้อมูลใหม่
+                } else {
+                    Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                }
+                document.getElementById('global-loader').classList.remove('active');
+            },
 
-        // ฟังก์ชัน: สร้างเอกสารตัวอย่าง
-        function loadMockDocuments() {
-            document.getElementById('documentsList').innerHTML = `
-                <div class="document-card bg-white border-2 border-gray-200 rounded-lg p-4">
-                    <div class="flex items-start gap-3 mb-3">
-                        <div class="text-2xl">📄</div>
-                        <div class="flex-1">
-                            <p class="font-bold text-gray-800">คู่มือการใช้งานระบบ</p>
-                            <p class="text-sm text-gray-500">เข้าถึงโดย: ${currentUser.role}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // ฟังก์ชัน: ออกจากระบบ
-        function handleLogout() {
-            currentUser = null;
-            document.getElementById('loginPage').classList.remove('hidden');
-            document.getElementById('dashboardPage').classList.add('hidden');
-            document.getElementById('password').value = '';
-        }
+            logout: function() {
+                // เคลียร์หน้าจอและกลับไปหน้า Login
+                document.getElementById('main-app').classList.add('hidden');
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
+        };
     </script>
 </body>
 </html>
-
