@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="th">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดเก็บเอกสาร</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+        * { font-family: 'Sarabun', sans-serif; }
+        .glass { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .btn-primary:hover { background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%); }
+    </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="min-h-screen gradient-bg">
+  <!-- ==================== CONFIG ==================== -->
+  <script>
+        // ⚠️ ตั้งค่าตรงนี้
+        const CONFIG = {
+            API_URL: 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE', // ← ใส่ URL ของ Apps Script ที่ Deploy แล้ว
+            GOOGLE_CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID_HERE' // ← ใส่ Google OAuth Client ID
+        };
+    </script><!-- ==================== LOGIN PAGE ==================== -->
+  <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
+   <div class="glass rounded-3xl shadow-2xl p-8 w-full max-w-md fade-in">
+    <div class="text-center mb-8">
+     <div class="w-20 h-20 mx-auto mb-4 rounded-2xl gradient-bg flex items-center justify-center">
+      <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+     </div>
+     <h1 class="text-2xl font-bold text-gray-800">ระบบจัดเก็บเอกสาร</h1>
+     <p class="text-gray-500 mt-2">เข้าสู่ระบบเพื่อจัดการเอกสาร</p>
+    </div>
+    <div id="loginError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-4"></div>
+    <form id="loginForm" class="space-y-4">
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้</label> <input type="text" id="username" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" placeholder="กรอกชื่อผู้ใช้">
+     </div>
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label> <input type="password" id="password" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" placeholder="กรอกรหัสผ่าน">
+     </div><button type="submit" class="w-full py-3 btn-primary text-white rounded-xl font-medium hover:shadow-lg transition transform hover:scale-[1.02]"> เข้าสู่ระบบ </button>
+    </form>
+    <div class="relative my-6">
+     <div class="absolute inset-0 flex items-center">
+      <div class="w-full border-t border-gray-200"></div>
+     </div>
+     <div class="relative flex justify-center text-sm">
+      <span class="px-4 bg-white text-gray-500">หรือ</span>
+     </div>
+    </div>
+    <div id="googleSignInBtn" class="flex justify-center">
+     <!-- Google Sign-In Button จะถูกสร้างที่นี่ -->
+    </div>
+    <p class="text-center text-sm text-gray-500 mt-6">ยังไม่มีบัญชี? <a href="#" onclick="showRegister()" class="text-purple-600 hover:underline font-medium">ลงทะเบียน</a></p>
+   </div>
+  </div><!-- ==================== REGISTER PAGE ==================== -->
+  <div id="registerPage" class="min-h-screen flex items-center justify-center p-4 hidden">
+   <div class="glass rounded-3xl shadow-2xl p-8 w-full max-w-md fade-in">
+    <div class="text-center mb-8">
+     <h1 class="text-2xl font-bold text-gray-800">ลงทะเบียน</h1>
+     <p class="text-gray-500 mt-2">สร้างบัญชีใหม่</p>
+    </div>
+    <div id="registerError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-4"></div>
+    <div id="registerSuccess" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-xl mb-4"></div>
+    <form id="registerForm" class="space-y-4">
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้</label> <input type="text" id="regUsername" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+     </div>
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">อีเมล</label> <input type="email" id="regEmail" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+     </div>
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label> <input type="password" id="regPassword" required minlength="6" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+     </div>
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">ยืนยันรหัสผ่าน</label> <input type="password" id="regConfirmPassword" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+     </div><button type="submit" class="w-full py-3 btn-primary text-white rounded-xl font-medium hover:shadow-lg transition"> ลงทะเบียน </button>
+    </form>
+    <p class="text-center text-sm text-gray-500 mt-6">มีบัญชีแล้ว? <a href="#" onclick="showLogin()" class="text-purple-600 hover:underline font-medium">เข้าสู่ระบบ</a></p>
+   </div>
+  </div><!-- ==================== MAIN DASHBOARD ==================== -->
+  <div id="dashboard" class="min-h-screen hidden">
+   <!-- Top Navigation -->
+   <nav class="glass sticky top-0 z-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+     <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-3">
+       <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+       </div><span class="font-bold text-gray-800 text-lg">DocManager</span>
+      </div>
+      <div class="flex items-center space-x-4">
+       <div class="text-right">
+        <p class="text-sm font-medium text-gray-800" id="userDisplayName">-</p>
+        <p class="text-xs text-gray-500" id="userRole">-</p>
+       </div><button onclick="logout()" class="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg></button>
+      </div>
+     </div>
+    </div>
+   </nav><!-- Sidebar & Content -->
+   <div class="flex">
+    <!-- Sidebar -->
+    <aside class="w-64 glass min-h-[calc(100vh-4rem)] border-r border-gray-200 p-4 hidden md:block">
+     <nav class="space-y-2">
+      <button onclick="showSection('documents')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+       </svg><span>เอกสารทั้งหมด</span> </button> <button onclick="showSection('upload')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+       </svg><span>อัปโหลดเอกสาร</span> </button> <button onclick="showSection('myDocs')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+       </svg><span>เอกสารของฉัน</span> </button> <!-- Admin Only -->
+      <div id="adminMenu" class="hidden">
+       <div class="border-t border-gray-200 my-4"></div>
+       <p class="text-xs font-medium text-gray-400 uppercase tracking-wider px-4 mb-2">ผู้ดูแลระบบ</p><button onclick="showSection('users')" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+        </svg><span>จัดการผู้ใช้</span> </button>
+      </div>
+     </nav>
+    </aside><!-- Main Content -->
+    <main class="flex-1 p-6">
+     <!-- Documents Section -->
+     <section id="documentsSection" class="fade-in">
+      <div class="flex justify-between items-center mb-6">
+       <h2 class="text-2xl font-bold text-white">เอกสารทั้งหมด</h2>
+       <div class="flex space-x-2">
+        <input type="text" id="searchDocs" placeholder="ค้นหาเอกสาร..." class="px-4 py-2 rounded-xl border-0 focus:ring-2 focus:ring-purple-500"> <select id="filterCategory" class="px-4 py-2 rounded-xl border-0 focus:ring-2 focus:ring-purple-500"> <option value="">ทุกหมวดหมู่</option> <option value="การเรียน">การเรียน</option> <option value="งานวิจัย">งานวิจัย</option> <option value="เอกสารทั่วไป">เอกสารทั่วไป</option> </select>
+       </div>
+      </div>
+      <div id="documentsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <!-- Documents will be loaded here -->
+       <div class="glass rounded-2xl p-6 text-center">
+        <div class="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto"></div>
+        <p class="text-gray-500 mt-4">กำลังโหลด...</p>
+       </div>
+      </div>
+     </section><!-- Upload Section -->
+     <section id="uploadSection" class="hidden fade-in">
+      <h2 class="text-2xl font-bold text-white mb-6">อัปโหลดเอกสาร</h2>
+      <div class="glass rounded-2xl p-8 max-w-2xl">
+       <form id="uploadForm" class="space-y-6">
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อเอกสาร</label> <input type="text" id="docTitle" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">รายละเอียด</label> <textarea id="docDescription" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"></textarea>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">หมวดหมู่</label> <select id="docCategory" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"> <option value="การเรียน">การเรียน</option> <option value="งานวิจัย">งานวิจัย</option> <option value="เอกสารทั่วไป">เอกสารทั่วไป</option> </select>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">ลิงก์ไฟล์ (Google Drive, Dropbox, etc.)</label> <input type="url" id="docFileUrl" required placeholder="https://..." class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+         <p class="text-xs text-gray-500 mt-1">* อัปโหลดไฟล์ไปยัง Google Drive แล้ววางลิงก์ที่นี่</p>
+        </div>
+        <div>
+         <label class="block text-sm font-medium text-gray-700 mb-2">การมองเห็น</label> <select id="docVisibility" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"> <option value="own">เฉพาะตัวเอง</option> <option value="all">ทุกคน</option> </select>
+        </div><button type="submit" class="w-full py-3 btn-primary text-white rounded-xl font-medium hover:shadow-lg transition"> อัปโหลดเอกสาร </button>
+       </form>
+      </div>
+     </section><!-- My Documents Section -->
+     <section id="myDocsSection" class="hidden fade-in">
+      <h2 class="text-2xl font-bold text-white mb-6">เอกสารของฉัน</h2>
+      <div id="myDocsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <!-- My documents will be loaded here -->
+      </div>
+     </section><!-- Users Management Section (Admin Only) -->
+     <section id="usersSection" class="hidden fade-in">
+      <h2 class="text-2xl font-bold text-white mb-6">จัดการผู้ใช้</h2>
+      <div class="glass rounded-2xl overflow-hidden">
+       <table class="w-full">
+        <thead class="bg-gray-50">
+         <tr>
+          <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">ผู้ใช้</th>
+          <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">อีเมล</th>
+          <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">บทบาท</th>
+          <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">วันที่สร้าง</th>
+          <th class="px-6 py-4 text-left text-sm font-medium text-gray-500">จัดการ</th>
+         </tr>
+        </thead>
+        <tbody id="usersList" class="divide-y divide-gray-200">
+         <!-- Users will be loaded here -->
+        </tbody>
+       </table>
+      </div>
+     </section>
+    </main>
+   </div>
+  </div><!-- ==================== MODALS ==================== --> <!-- Edit User Modal -->
+  <div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+   <div class="glass rounded-2xl p-6 w-full max-w-md mx-4 fade-in">
+    <h3 class="text-xl font-bold text-gray-800 mb-4">แก้ไขผู้ใช้</h3>
+    <form id="editUserForm" class="space-y-4">
+     <input type="hidden" id="editUserId">
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">อีเมล</label> <input type="email" id="editUserEmail" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500">
+     </div>
+     <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">บทบาท</label> <select id="editUserRole" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500"> <option value="student">นักเรียน</option> <option value="teacher">ครู</option> <option value="admin">ผู้ดูแลระบบ</option> </select>
+     </div>
+     <div class="flex space-x-3">
+      <button type="button" onclick="closeModal('editUserModal')" class="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition"> ยกเลิก </button> <button type="submit" class="flex-1 py-3 btn-primary text-white rounded-xl font-medium hover:shadow-lg transition"> บันทึก </button>
+     </div>
+    </form>
+   </div>
+  </div><!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-4 right-4 transform translate-y-20 opacity-0 transition-all duration-300">
+   <div class="glass rounded-xl px-6 py-4 shadow-lg flex items-center space-x-3">
+    <span id="toastIcon"></span> <span id="toastMessage" class="text-gray-800"></span>
+   </div>
+  </div><!-- ==================== JAVASCRIPT ==================== -->
+  <script>
+        // State
+        let currentUser = null;
+        let allDocuments = [];
+
+        // ==================== API Functions ====================
+        async function apiCall(action, params = {}) {
+            const url = new URL(CONFIG.API_URL);
+            url.searchParams.append('action', action);
+            
+            for(const [key, value] of Object.entries(params)) {
+                if(typeof value !== 'object') {
+                    url.searchParams.append(key, value);
+                }
+            }
+
+            try {
+                const options = {
+                    method: params.body ? 'POST' : 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                
+                if(params.body) {
+                    options.body = JSON.stringify(params.body);
+                }
+
+                const response = await fetch(url.toString(), options);
+                return await response.json();
+            } catch(error) {
+                console.error('API Error:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        // ==================== Authentication ====================
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            hideError('loginError');
+            
+            const result = await apiCall('login', { username, password });
+            
+            if(result.success) {
+                loginSuccess(result.user);
+            } else {
+                showError('loginError', result.error);
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            
+            if(password !== confirmPassword) {
+                showError('registerError', 'รหัสผ่านไม่ตรงกัน');
+                return;
+            }
+            
+            hideError('registerError');
+            
+            const result = await apiCall('register', {
+                body: {
+                    username: document.getElementById('regUsername').value,
+                    email: document.getElementById('regEmail').value,
+                    password: password
+                }
+            });
+            
+            if(result.success) {
+                document.getElementById('registerSuccess').textContent = 'ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ';
+                document.getElementById('registerSuccess').classList.remove('hidden');
+                setTimeout(() => showLogin(), 2000);
+            } else {
+                showError('registerError', result.error);
+            }
+        });
+
+        function loginSuccess(user) {
+            currentUser = user;
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('registerPage').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            
+            document.getElementById('userDisplayName').textContent = user.username;
+            document.getElementById('userRole').textContent = getRoleText(user.role);
+            
+            // Show admin menu if admin
+            if(user.role === 'admin') {
+                document.getElementById('adminMenu').classList.remove('hidden');
+            }
+            
+            loadDocuments();
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('user');
+            
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('adminMenu').classList.add('hidden');
+            
+            // Reset forms
+            document.getElementById('loginForm').reset();
+        }
+
+        // Google Sign-In
+        function initGoogleSignIn() {
+            if(typeof google !== 'undefined' && CONFIG.GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+                google.accounts.id.initialize({
+                    client_id: CONFIG.GOOGLE_CLIENT_ID,
+                    callback: handleGoogleSignIn
+                });
+                google.accounts.id.renderButton(
+                    document.getElementById('googleSignInBtn'),
+                    { theme: 'outline', size: 'large', width: '320px', text: 'signin_with' }
+                );
+                // Enable One Tap sign in
+                google.accounts.id.prompt();
+            }
+        }
+
+        async function handleGoogleSignIn(response) {
+            if(!response.credential) {
+                showError('loginError', 'ล้มเหลวในการตรวจสอบ Google');
+                return;
+            }
+            
+            const result = await apiCall('googleLogin', { token: response.credential });
+            
+            if(result.success) {
+                loginSuccess(result.user);
+            } else {
+                showError('loginError', result.error);
+            }
+        }
+
+        // ==================== Documents ====================
+        async function loadDocuments() {
+            const result = await apiCall('getDocuments', { 
+                userId: currentUser.id, 
+                role: currentUser.role 
+            });
+            
+            if(result.success) {
+                allDocuments = result.documents;
+                renderDocuments(allDocuments);
+            }
+        }
+
+        function renderDocuments(documents, container = 'documentsList') {
+            const list = document.getElementById(container);
+            
+            if(documents.length === 0) {
+                list.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-gray-400">ยังไม่มีเอกสาร</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = documents.map(doc => `
+                <div class="glass rounded-2xl p-6 card-hover">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <span class="text-xs px-3 py-1 rounded-full ${doc.visibility === 'all' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                            ${doc.visibility === 'all' ? 'สาธารณะ' : 'ส่วนตัว'}
+                        </span>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 mb-2 line-clamp-2">${escapeHtml(doc.title)}</h3>
+                    <p class="text-sm text-gray-500 mb-4 line-clamp-2">${escapeHtml(doc.description || 'ไม่มีรายละเอียด')}</p>
+                    <div class="flex items-center justify-between text-xs text-gray-400">
+                        <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded">${escapeHtml(doc.category)}</span>
+                        <span>${formatDate(doc.uploadDate)}</span>
+                    </div>
+                    <div class="flex space-x-2 mt-4">
+                        <a href="${doc.fileUrl}" target="_blank" 
+                            class="flex-1 py-2 text-center text-sm btn-primary text-white rounded-lg hover:shadow-md transition">
+                            เปิดไฟล์
+                        </a>
+                        ${(currentUser.role === 'admin' || doc.uploadedBy == currentUser.id) ? `
+                            <button onclick="deleteDocument(${doc.id})" 
+                                class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const result = await apiCall('uploadDocument', {
+                body: {
+                    title: document.getElementById('docTitle').value,
+                    description: document.getElementById('docDescription').value,
+                    category: document.getElementById('docCategory').value,
+                    fileUrl: document.getElementById('docFileUrl').value,
+                    visibility: document.getElementById('docVisibility').value,
+                    uploadedBy: currentUser.id
+                }
+            });
+            
+            if(result.success) {
+                showToast('อัปโหลดเอกสารสำเร็จ', 'success');
+                document.getElementById('uploadForm').reset();
+                loadDocuments();
+                showSection('documents');
+            } else {
+                showToast(result.error, 'error');
+            }
+        });
+
+        async function deleteDocument(docId) {
+            if(!confirm('ต้องการลบเอกสารนี้หรือไม่?')) return;
+            
+            const result = await apiCall('deleteDocument', {
+                docId,
+                userId: currentUser.id,
+                role: currentUser.role
+            });
+            
+            if(result.success) {
+                showToast('ลบเอกสารสำเร็จ', 'success');
+                loadDocuments();
+            } else {
+                showToast(result.error, 'error');
+            }
+        }
+
+        // Search & Filter
+        document.getElementById('searchDocs').addEventListener('input', filterDocuments);
+        document.getElementById('filterCategory').addEventListener('change', filterDocuments);
+
+        function filterDocuments() {
+            const search = document.getElementById('searchDocs').value.toLowerCase();
+            const category = document.getElementById('filterCategory').value;
+            
+            const filtered = allDocuments.filter(doc => {
+                const matchSearch = doc.title.toLowerCase().includes(search) || 
+                                   (doc.description && doc.description.toLowerCase().includes(search));
+                const matchCategory = !category || doc.category === category;
+                return matchSearch && matchCategory;
+            });
+            
+            renderDocuments(filtered);
+        }
+
+        // ==================== User Management ====================
+        async function loadUsers() {
+            const result = await apiCall('getUsers', { role: currentUser.role });
+            
+            if(result.success) {
+                renderUsers(result.users);
+            }
+        }
+
+        function renderUsers(users) {
+            const list = document.getElementById('usersList');
+            
+            list.innerHTML = users.map(user => `
+                <tr>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full gradient-bg flex items-center justify-center text-white font-medium">
+                                ${user.username.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="ml-3 font-medium text-gray-800">${escapeHtml(user.username)}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">${escapeHtml(user.email)}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-sm ${getRoleBadgeClass(user.role)}">
+                            ${getRoleText(user.role)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-500">${formatDate(user.createdAt)}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex space-x-2">
+                            <button onclick="editUser(${user.id}, '${user.email}', '${user.role}')" 
+                                class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button onclick="deleteUser(${user.id})" 
+                                class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editUser(id, email, role) {
+            document.getElementById('editUserId').value = id;
+            document.getElementById('editUserEmail').value = email;
+            document.getElementById('editUserRole').value = role;
+            document.getElementById('editUserModal').classList.remove('hidden');
+            document.getElementById('editUserModal').classList.add('flex');
+        }
+
+        document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const result = await apiCall('updateUser', {
+                body: {
+                    userId: document.getElementById('editUserId').value,
+                    email: document.getElementById('editUserEmail').value,
+                    role: document.getElementById('editUserRole').value
+                }
+            });
+            
+            if(result.success) {
+                showToast('อัปเดตผู้ใช้สำเร็จ', 'success');
+                closeModal('editUserModal');
+                loadUsers();
+            } else {
+                showToast(result.error, 'error');
+            }
+        });
+
+        async function deleteUser(userId) {
+            if(!confirm('ต้องการลบผู้ใช้นี้หรือไม่?')) return;
+            
+            const result = await apiCall('deleteUser', {
+                userId,
+                requestRole: currentUser.role
+            });
+            
+            if(result.success) {
+                showToast('ลบผู้ใช้สำเร็จ', 'success');
+                loadUsers();
+            } else {
+                showToast(result.error, 'error');
+            }
+        }
+
+        // ==================== UI Functions ====================
+        function showSection(section) {
+            // Hide all sections
+            document.getElementById('documentsSection').classList.add('hidden');
+            document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('myDocsSection').classList.add('hidden');
+            document.getElementById('usersSection').classList.add('hidden');
+            
+            // Show requested section
+            document.getElementById(section + 'Section').classList.remove('hidden');
+            
+            // Load data
+            if(section === 'users' && currentUser.role === 'admin') {
+                loadUsers();
+            } else if(section === 'myDocs') {
+                const myDocs = allDocuments.filter(d => d.uploadedBy == currentUser.id);
+                renderDocuments(myDocs, 'myDocsList');
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('registerPage').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('registerPage').classList.remove('hidden');
+        }
+
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
+
+        function hideError(elementId) {
+            document.getElementById(elementId).classList.add('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const msg = document.getElementById('toastMessage');
+            
+            msg.textContent = message;
+            icon.innerHTML = type === 'success' 
+                ? '<svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'
+                : '<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ==================== Utilities ====================
+        function getRoleText(role) {
+            const roles = {
+                'admin': 'ผู้ดูแลระบบ',
+                'teacher': 'ครู',
+                'student': 'นักเรียน'
+            };
+            return roles[role] || role;
+        }
+
+        function getRoleBadgeClass(role) {
+            const classes = {
+                'admin': 'bg-red-100 text-red-700',
+                'teacher': 'bg-blue-100 text-blue-700',
+                'student': 'bg-green-100 text-green-700'
+            };
+            return classes[role] || 'bg-gray-100 text-gray-700';
+        }
+
+        function formatDate(dateStr) {
+            if(!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('th-TH', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function escapeHtml(text) {
+            if(!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== Initialize ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for saved session
+            const savedUser = localStorage.getItem('user');
+            if(savedUser) {
+                try {
+                    loginSuccess(JSON.parse(savedUser));
+                } catch(e) {
+                    localStorage.removeItem('user');
+                }
+            }
+            
+            // Initialize Google Sign-In
+            setTimeout(initGoogleSignIn, 500);
+        });
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d4f00e11030d034',t:'MTc3MjI3MjA3Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
